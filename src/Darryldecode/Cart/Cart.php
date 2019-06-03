@@ -182,7 +182,7 @@ class Cart
             'name' => $name,
             'price' => Helpers::normalizePrice($price),
             'quantity' => $quantity,
-            'attributes' => new ItemAttributeCollection($attributes),
+            'attributes' => [new ItemAttributeCollection($attributes)],
             'conditions' => $conditions,
         ));
 
@@ -244,7 +244,7 @@ class Cart
                     $item = $this->updateQuantityRelative($item, $key, $value);
                 }
             } elseif ($key == 'attributes') {
-                $item[$key] = new ItemAttributeCollection($value);
+                $item[$key][] = new ItemAttributeCollection($value);
             } else {
                 $item[$key] = $value;
             }
