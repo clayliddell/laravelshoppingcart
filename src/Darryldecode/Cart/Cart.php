@@ -244,7 +244,8 @@ class Cart
                     $item = $this->updateQuantityRelative($item, $key, $value);
                 }
             } elseif ($key == 'attributes') {
-                $item[$key][] = new ItemAttributeCollection($value);
+                $attr = $item[$key];
+                $item[$key] = array_merge($attr, $value);
             } else {
                 $item[$key] = $value;
             }
