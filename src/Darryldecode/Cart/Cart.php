@@ -549,7 +549,52 @@ class Cart
         });
 
         return Helpers::formatValue(floatval($sum), $formatted, $this->config);
-    }    
+    }
+
+    public function getItemConditionTotal()
+    {
+        $cart = $this->getContent();
+
+        $total = 0;
+
+        foreach ($cart as $item) {
+            if( is_array($item->getConditions()) ) {
+                foreach ($item->getConditions() as $condition) {
+                    $total += $condition->getCalculatedValue($item->price);
+                }
+            } else {
+                $total += $conditions->getCalculatedValue($item->price);
+            }
+        }
+
+        return $total;
+    }
+
+    public function getCartConditionTotal($totalOrSubTotalOrPrice = null)
+    {
+        if(!$totalOrSubTotalOrPrice) {
+            $totalOrSubTotalOrPrice = $this->getSubTotal(false);
+        }
+
+        $total = 0;
+
+        foreach ($this->getConditions() as $condition) {
+            $total += $condition->getCalculatedValue($totalOrSubTotalOrPrice);
+        }
+
+        return $total;
+    }
+
+    public function getConditionTotal($totalOrSubTotalOrPrice = null)
+    {
+        $total = 0;
+        
+        $total += $this->getItemConditionTotal();
+
+        $total += $this->getCartConditionTotal($totalOrSubTotalOrPrice);
+
+        return $total;
+    }
     
     /**
      * get cart sub total
@@ -653,9 +698,38 @@ class Cart
      *
      * @return CartCollection
      */
-    public function getContent()
+    public function getContent($unstacked = false)
     {
-        return (new CartCollection($this->session->get($this->sessionKeyCartItems)));
+        $cart = new CartCollection($this->session->get($this->sessionKeyCartItems));
+        
+        if ($unstacked) {
+            $unstackedCart = new CartCollection();
+
+            foreach ($cart as $itemCollection) {
+                $i = 0;
+                if(is_array($itemCollection->attributes) || $itemCollection->attributes instanceof Traversable) {
+                    foreach ($itemCollection->attributes as $attributes) {
+                        $item = $this->validate(array(
+                            'id' => $itemCollection->id . "_$i",
+                            'name' => $itemCollection->name,
+                            'price' => $itemCollection->price,
+                            'quantity' => 1,
+                            'attributes' => $attributes,
+                            'conditions' => $itemCollection->conditions,
+                        ));
+
+                        $unstackedCart->put($itemCollection->id . "_$i", new ItemCollection($item, $this->config));
+                        $i++;
+                    }
+                } else {
+                    $unstackedCart->put($itemCollection->id, $itemCollection);
+                }
+            }
+
+            return $unstackedCart;
+        } else {
+            return $cart;
+        }
     }
 
     /**
@@ -833,5 +907,14 @@ class Cart
     protected function fireEvent($name, $value = [])
     {
         return $this->events->dispatch($this->getInstanceName() . '.' . $name, array_values([$value, $this]));
+    }
+
+    public function unstack()
+    {
+        $unstackedCart = Cart::getContent(true);
+
+        $this->save($unstackedCart);
+
+        return $unstackedCart;
     }
 }
