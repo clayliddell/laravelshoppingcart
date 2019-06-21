@@ -116,9 +116,9 @@ class Cart
      * @param $itemId
      * @return mixed
      */
-    public function get($itemId)
+    public function get($itemId, $stacked = false)
     {
-        return $this->getContent()->get($itemId);
+        return $this->getContent($stacked)->get($itemId);
     }
 
     /**
@@ -192,14 +192,54 @@ class Cart
         // if the item is already in the cart we will just update it
         if ($cart->has($id)) {
 
-            $this->update($id, $item);
+            $this->updateItemId($id, $id . '_0');
+
+            $cart = $this->getContent();
+        }
+
+        if ($cart->has($id . '_0')) {
+            
+            $i = 1;
+
+            while($cart->has($id . "_$i")) {
+                $i++;
+            }
+            
+            $this->addRow($id . "_$i", $item);
+
         } else {
-
             $this->addRow($id, $item);
-
         }
 
         return $this;
+    }
+
+    /**
+     * update a cart item id
+     *
+     * @param $id
+     * @param $newId
+     * 
+     * @return bool
+     */
+    public function updateItemId($id, $newId)
+    {
+        if($this->fireEvent('updating', $newId) === false) {
+            return false;
+        }
+
+        $cart = $this->getContent();
+
+        $item = $cart->pull($id);
+
+        $cart->put($newId, $item);
+
+        $cart->forget($id);
+
+        $this->save($cart);
+
+        $this->fireEvent('updated', $item);
+        return true;
     }
 
     /**
@@ -698,35 +738,51 @@ class Cart
      *
      * @return CartCollection
      */
-    public function getContent($unstacked = false)
+    public function getContent($stacked = false)
     {
         $cart = new CartCollection($this->session->get($this->sessionKeyCartItems));
-        
-        if ($unstacked) {
-            $unstackedCart = new CartCollection();
 
-            foreach ($cart as $itemCollection) {
-                $i = 0;
-                if(is_array($itemCollection->attributes) || $itemCollection->attributes instanceof Traversable) {
-                    foreach ($itemCollection->attributes as $attributes) {
+        if ($stacked) {
+            $stackedCart = new CartCollection();
+
+            $baseItemId = '';
+            
+            foreach ($cart as $key => $item) {
+                $itemId = array();
+
+                if (preg_match('/^(.*)_[0-9]{1,3}$/', $key, $itemId)) {
+                    if (strcmp($baseItemId, $itemId[1]) == 0) {
+                        $baseItem = $stackedCart->pull($baseItemId);
+
+                        $attr = $baseItem->attributes;
+                        $attr[] = $item->attributes[0];
+
+                        $baseItem['attributes'] = $attr;
+
+                        $baseItem['quantity'] += 1;
+
+                        $stackedCart->put($baseItemId, $baseItem);
+                    } else {
+                        $baseItemId = $itemId[1];
+
                         $item = $this->validate(array(
-                            'id' => $itemCollection->id . "_$i",
-                            'name' => $itemCollection->name,
-                            'price' => $itemCollection->price,
+                            'id' => $item->id,
+                            'name' => $item->name,
+                            'price' => $item->price,
                             'quantity' => 1,
-                            'attributes' => $attributes,
-                            'conditions' => $itemCollection->conditions,
+                            'attributes' => [$item->attributes[0]],
+                            'conditions' => $item->conditions,
                         ));
 
-                        $unstackedCart->put($itemCollection->id . "_$i", new ItemCollection($item, $this->config));
-                        $i++;
+                        $stackedCart->put($baseItemId, new ItemCollection($item, $this->config));
                     }
+
                 } else {
-                    $unstackedCart->put($itemCollection->id, $itemCollection);
+                    $stackedCart->put($item->id, $item);
                 }
             }
 
-            return $unstackedCart;
+            return $stackedCart;
         } else {
             return $cart;
         }
@@ -907,14 +963,5 @@ class Cart
     protected function fireEvent($name, $value = [])
     {
         return $this->events->dispatch($this->getInstanceName() . '.' . $name, array_values([$value, $this]));
-    }
-
-    public function unstack()
-    {
-        $unstackedCart = Cart::getContent(true);
-
-        $this->save($unstackedCart);
-
-        return $unstackedCart;
     }
 }
