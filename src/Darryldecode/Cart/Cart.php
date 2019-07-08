@@ -116,9 +116,9 @@ class Cart
      * @param $itemId
      * @return mixed
      */
-    public function get($itemId, $stacked = false)
+    public function get($itemId)
     {
-        return $this->getContent($stacked)->get($itemId);
+        return $this->getContent()->get($itemId);
     }
 
     /**
