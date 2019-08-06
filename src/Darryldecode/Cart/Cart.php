@@ -341,7 +341,7 @@ class Cart
      */
     public function remove($id)
     {
-        $cart = $this->getContent(true);
+        $cart = $this->getContent();
 
         if($this->fireEvent('removing', $id) === false) {
             return false;
