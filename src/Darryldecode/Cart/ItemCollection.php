@@ -1,4 +1,4 @@
-<?php namespace Darryldecode\Cart;
+<?php
 
 /**
  * Created by PhpStorm.
@@ -7,10 +7,13 @@
  * Time: 11:03 AM
  */
 
+namespace Darryldecode\Cart;
+
 use Darryldecode\Cart\Helpers\Helpers;
 use Illuminate\Support\Collection;
 
-class ItemCollection extends Collection {
+class ItemCollection extends Collection
+{
 
     /**
      * Sets the config parameters.
@@ -38,13 +41,18 @@ class ItemCollection extends Collection {
      */
     public function getPriceSum()
     {
-        return Helpers::formatValue($this->price * $this->quantity, $this->config['format_numbers'], $this->config);
-
+        return Helpers::formatValue(
+            $this->price * $this->quantity,
+            $this->config['format_numbers'],
+            $this->config
+        );
     }
 
     public function __get($name)
     {
-        if( $this->has($name) ) return $this->get($name);
+        if ($this->has($name)) {
+            return $this->get($name);
+        }
         return null;
     }
 
@@ -55,13 +63,16 @@ class ItemCollection extends Collection {
      */
     public function hasConditions()
     {
-        if( ! isset($this['conditions']) ) return false;
-        if( is_array($this['conditions']) )
-        {
+        if (!isset($this['conditions'])) {
+            return false;
+        }
+        if (is_array($this['conditions'])) {
             return count($this['conditions']) > 0;
         }
         $conditionInstance = "Darryldecode\\Cart\\CartCondition";
-        if( $this['conditions'] instanceof $conditionInstance ) return true;
+        if ($this['conditions'] instanceof $conditionInstance) {
+            return true;
+        }
 
         return false;
     }
@@ -73,7 +84,9 @@ class ItemCollection extends Collection {
      */
     public function getConditions()
     {
-        if(! $this->hasConditions() ) return [];
+        if (! $this->hasConditions()) {
+            return [];
+        }
         return $this['conditions'];
     }
 
@@ -88,19 +101,14 @@ class ItemCollection extends Collection {
         $newPrice = 0.00;
         $processed = 0;
 
-        if( $this->hasConditions() )
-        {
-            if( is_array($this->conditions) )
-            {
-                foreach($this->conditions as $condition)
-                {
+        if ($this->hasConditions()) {
+            if (is_array($this->conditions)) {
+                foreach ($this->conditions as $condition) {
                     ( $processed > 0 ) ? $toBeCalculated = $newPrice : $toBeCalculated = $originalPrice;
                     $newPrice = $condition->applyCondition($toBeCalculated);
                     $processed++;
                 }
-            }
-            else
-            {
+            } else {
                 $newPrice = $this['conditions']->applyCondition($originalPrice);
             }
 
@@ -116,6 +124,10 @@ class ItemCollection extends Collection {
      */
     public function getPriceSumWithConditions($formatted = true)
     {
-        return Helpers::formatValue($this->getPriceWithConditions(false) * $this->quantity, $formatted, $this->config);
+        return Helpers::formatValue(
+            $this->getPriceWithConditions(false) * $this->quantity,
+            $formatted,
+            $this->config
+        );
     }
 }

@@ -1,4 +1,4 @@
-<?php namespace Darryldecode\Cart;
+<?php
 
 /**
  * Created by PhpStorm.
@@ -7,8 +7,11 @@
  * Time: 9:46 PM
  */
 
+namespace Darryldecode\Cart;
+
 use Illuminate\Support\Collection;
 
-class CartConditionCollection extends Collection {
+class CartConditionCollection extends Collection
+{
 
 }
