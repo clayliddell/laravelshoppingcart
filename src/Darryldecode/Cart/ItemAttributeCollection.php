@@ -1,4 +1,4 @@
-<?php namespace Darryldecode\Cart;
+<?php
 
 /**
  * Created by PhpStorm.
@@ -7,13 +7,14 @@
  * Time: 12:03 PM
  */
 
+namespace Darryldecode\Cart;
+
 use Illuminate\Support\Collection;
 
-class ItemAttributeCollection extends Collection {
-
+class ItemAttributeCollection extends Collection
+{
     public function __get($name)
     {
-        if( $this->has($name) ) return $this->get($name);
-        return null;
+        return $this->has($name) ? $this->get($name) : null;
     }
 }
